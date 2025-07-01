@@ -1,4 +1,8 @@
-[![Build Status](https://travis-ci.org/krisprice/ipnet.svg?branch=master)](https://travis-ci.org/krisprice/ipnet)
+## Notes on this Fork
+
+Essentially tries to remove all usage of `std` and `alloc` to be purely `no_std`.
+
+## ipnet
 
 This module provides types and useful methods for working with IPv4 and IPv6 network addresses, commonly called IP prefixes. The new `IpNet`, `Ipv4Net`, and `Ipv6Net` types build on the existing `IpAddr`, `Ipv4Addr`, and `Ipv6Addr` types already provided in Rust's standard library and align to their design to stay consistent.
 
@@ -48,14 +52,14 @@ fn main() {
     let net6 = Ipv6Net::from_str("fd00::/24").unwrap();
 
     // Or alternatively as follows.
-    
+
     let net4: Ipv4Net = "10.1.1.0/24".parse().unwrap();
     let net6: Ipv6Net = "fd00::/24".parse().unwrap();
 
     // IpNet can represent either an IPv4 or IPv6 network address.
 
     let net = IpNet::from(net4);
-    
+
     // It can also be created from string representations.
 
     let net = IpNet::from_str("10.1.1.0/24").unwrap();
@@ -66,118 +70,6 @@ fn main() {
 
     println!("{} hostmask = {}", net, net.hostmask());
     println!("{} netmask = {}", net4, net4.netmask());
-}
-```
-
-### Subdivide an existing IP network into smaller subnets
-
-```rust
-extern crate ipnet;
-use ipnet::Ipv4Net;
-
-fn main() {
-    let net: Ipv4Net = "192.168.0.0/23".parse().unwrap();
-
-    println!("\n/25 subnets in {}:", net);
-
-    // Note: `subnets()` returns a `Result`. If the given prefix length
-    // is less than the existing prefix length the `Result` will contain
-    // an error.
-
-    let subnets = net.subnets(25)
-        .expect("PrefixLenError: new prefix length cannot be shorter than existing");
-
-    // Output:
-    //  subnet 0 = 192.168.0.0/25
-    //  subnet 1 = 192.168.0.128/25
-    //  subnet 2 = 192.168.1.0/25
-    //  subnet 3 = 192.168.1.128/25
-
-    for (i, n) in subnets.enumerate() {
-        println!("\tsubnet {} = {}", i, n);
-    }
-}
-```
-
-### Iterate over the valid subnets between two IPv4 addresses
-
-```rust
-extern crate ipnet;
-use std::net::Ipv4Addr;
-use ipnet::Ipv4Subnets;
-
-fn main() {
-    let start = Ipv4Addr::new(10, 0, 0, 0);
-    let end = Ipv4Addr::new(10, 0, 0, 239);
-
-    println!("\n/0 or greater subnets between {} and {}:", start, end);
-
-    // Output all subnets starting with the largest that will fit. This
-    // will give us the smallest possible set of valid subnets.
-    //
-    // Output:
-    //  subnet 0 = 10.0.0.0/25
-    //  subnet 1 = 10.0.0.128/26
-    //  subnet 2 = 10.0.0.192/27
-    //  subnet 3 = 10.0.0.224/28
-
-    let subnets = Ipv4Subnets::new(start, end, 0);
-
-    for (i, n) in subnets.enumerate() {
-        println!("\tsubnet {} = {}", i, n);
-    }
-
-    println!("\n/26 or greater subnets between {} and {}:", start, end);
-
-    // Output all subnets with prefix lengths less than or equal to 26.
-    // This results in more subnets, but limits them to a maximum size.
-    //
-    // Output:
-    //  subnet 0 = 10.0.0.0/26
-    //  subnet 1 = 10.0.0.64/26
-    //  subnet 2 = 10.0.0.128/26
-    //  subnet 3 = 10.0.0.192/27
-    //  subnet 4 = 10.0.0.224/28
-
-    let subnets = Ipv4Subnets::new(start, end, 26);
-
-    for (i, n) in subnets.enumerate() {
-        println!("\tsubnet {} = {}", i, n);
-    }
-}
-```
-
-### Aggregate a list of IP prefixes
-
-```rust
-extern crate ipnet;
-use ipnet::IpNet;
-
-fn main() {
-    // Example input list of overlapping and adjacent prefixes.
-
-    let strings = vec![
-        "10.0.0.0/24", "10.0.1.0/24", "10.0.1.1/24", "10.0.1.2/24",
-        "10.0.2.0/24",
-        "10.1.0.0/24", "10.1.1.0/24",
-        "192.168.0.0/24", "192.168.1.0/24", "192.168.2.0/24", "192.168.3.0/24",
-        "fd00::/32", "fd00:1::/32",
-    ];
-
-    let nets: Vec<IpNet> = strings.iter().filter_map(|p| p.parse().ok()).collect();
-    
-    println!("\nAggregated IP prefixes:");
-    
-    // Output:
-    //  10.0.0.0/23
-    //  10.0.2.0/24
-    //  10.1.0.0/23
-    //  192.168.0.0/22
-    //  fd00::/31
-    
-    for n in IpNet::aggregate(&nets) {
-        println!("\t{}", n);
-    }
 }
 ```
 
